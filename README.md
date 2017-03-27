@@ -1,3 +1,7 @@
+## Running the board
+
+The best way to try all relevant scenarios is by running the blackbox test called ```OrderBoardSystemTest.java```.
+
 ## Design decisions
 
 The implemented solution is largely driven by assumptions that
