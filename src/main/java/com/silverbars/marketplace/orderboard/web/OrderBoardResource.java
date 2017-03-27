@@ -43,8 +43,11 @@ public class OrderBoardResource {
     @DELETE
     @Path("/orders/{orderId}")
     public Response cancelOrder(@PathParam("orderId") String orderId) {
-        orderManagementService.cancelOrder(orderId);
+        if (orderId == null) {
+            return Response.status(BAD_REQUEST).entity(new ErrorResult("Missing orderId to cancel")).build();
+        }
 
+        orderManagementService.cancelOrder(orderId);
         return ok().build();
     }
 }

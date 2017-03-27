@@ -55,6 +55,14 @@ public class OrderBoardResourceTest {
     }
 
     @Test
+    public void should_report_http_bad_request_when_cancelled_order_id_ommitted() {
+        Response response = orderBoardResource.cancelOrder(null);
+
+        assertThat(response.getStatus(), is(BAD_REQUEST.getStatusCode()));
+        assertThat(response.getEntity(), is(new ErrorResult("Missing orderId to cancel")));
+    }
+
+    @Test
     public void should_delegate_to_service_and_report_http_ok_when_cancelling_order() {
         Response response = orderBoardResource.cancelOrder(ORDER_ID);
 
