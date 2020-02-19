@@ -62,10 +62,31 @@ public class OrderBoardSystemTest {
     }
 
     @Test
+    public void should_advise_when_cancelling_non_registered_order() {
+        given().port(serverPortNumber).and().basePath(BASE_PATH).and()
+                        .request().with().pathParam("orderId", "unregistered")
+                .when().delete("{orderId}")
+                .then().assertThat()
+                        .statusCode(is(NOT_FOUND.getStatusCode())).and()
+                        .body("message", is("Non existing order unregistered could not be cancelled"));
+    }
+
+    @Test
+    public void should_cancel_previously_registered_order() {
+        String orderId = registerNewOrder(aRegisterOrderCommand()
+                .ofType(BUY).forUser(BUFFETT).withQuantity(TEN).withPriceLevel(ONE).build());
+
+        given().port(serverPortNumber).and().basePath(BASE_PATH).and().request().with().pathParam("orderId", orderId)
+                .when().delete("{orderId}")
+                .then().assertThat().statusCode(is(OK.getStatusCode()));
+    }
+
+    @Test
     public void should_report_registered_orders_summary() {
         registerNewOrder(aRegisterOrderCommand().ofType(BUY).withPriceLevel(ONE).withQuantity(TEN).forUser(BUFFETT).build());
         registerNewOrder(aRegisterOrderCommand().ofType(BUY).withPriceLevel(ONE).withQuantity(TEN).forUser(BUFFETT).build());
-        registerNewOrder(aRegisterOrderCommand().ofType(BUY).withPriceLevel(TWO).withQuantity(TEN).forUser(SOROS).build());
+        cancelOrder(
+                registerNewOrder(aRegisterOrderCommand().ofType(BUY).withPriceLevel(TWO).withQuantity(TEN).forUser(SOROS).build()));
         registerNewOrder(aRegisterOrderCommand().ofType(BUY).withPriceLevel(TEN).withQuantity(TWENTY).forUser(SOROS).build());
         registerNewOrder(aRegisterOrderCommand().ofType(SELL).withPriceLevel(TWO).withQuantity(TEN).forUser(BUFFETT).build());
         registerNewOrder(aRegisterOrderCommand().ofType(SELL).withPriceLevel(ONE).withQuantity(TEN).forUser(SOROS).build());
@@ -85,29 +106,8 @@ public class OrderBoardSystemTest {
                 .withBuySideSummaries(
                         ImmutableList.of(
                                 aSummary().forPriceLevel(TEN).withQuantity(TWENTY).build(),
-                                aSummary().forPriceLevel(TWO).withQuantity(TEN).build(),
                                 aSummary().forPriceLevel(ONE).withQuantity(TWENTY).build()
                         )).build()));
-    }
-
-    @Test
-    public void should_advise_when_cancelling_non_registered_order() {
-        given().port(serverPortNumber).and().basePath(BASE_PATH).and()
-                        .request().with().pathParam("orderId", "unregistered")
-                .when().delete("{orderId}")
-                .then().assertThat()
-                        .statusCode(is(NOT_FOUND.getStatusCode())).and()
-                        .body("message", is("Non existing order unregistered could not be cancelled"));
-    }
-
-    @Test
-    public void should_cancel_previously_registered_order() {
-        String orderId = registerNewOrder(aRegisterOrderCommand()
-                .ofType(BUY).forUser(BUFFETT).withQuantity(TEN).withPriceLevel(ONE).build());
-
-        given().port(serverPortNumber).and().basePath(BASE_PATH).and().request().with().pathParam("orderId", orderId)
-                .when().delete("{orderId}")
-                .then().assertThat().statusCode(is(OK.getStatusCode()));
     }
 
     private String registerNewOrder(RegisterOrder anOrder) {

@@ -16,7 +16,8 @@ import java.util.Optional;
 import static com.silverbars.marketplace.orderboard.common.OrderType.BUY;
 import static com.silverbars.marketplace.orderboard.order.Order.Builder.anOrder;
 import static com.silverbars.marketplace.orderboard.pricelevel.PriceLevelSummary.aPriceLevelSummary;
-import static java.math.BigDecimal.*;
+import static java.math.BigDecimal.ONE;
+import static java.math.BigDecimal.TEN;
 import static java.util.Optional.empty;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -33,7 +34,7 @@ public class OrderEventListenerTest {
 
     @Before
     public void setup_order_event_listener() {
-        orderEventListener = new OrderEventListener(priceLevelSummaryRepository, new LockingRunner());
+        orderEventListener = new OrderEventListener(priceLevelSummaryRepository, new LockingRunner<>());
     }
 
     @Test
@@ -57,13 +58,23 @@ public class OrderEventListenerTest {
     }
 
     @Test
-    public void should_store_adjusted_summary_on_order_cancellaion_event() {
+    public void should_store_adjusted_summary_on_order_cancellation_event() {
+        when(priceLevelSummaryRepository.load(PRICE_LEVEL_SUMMARY_ID)).thenReturn(
+                Optional.of(aPriceLevelSummary(PRICE_LEVEL_SUMMARY_ID).adjustBy(new BigDecimal(100))));
+
+        orderEventListener.handle(new OrderCancelledEvent(ORDER));
+
+        verify(priceLevelSummaryRepository).store(
+                aPriceLevelSummary(PRICE_LEVEL_SUMMARY_ID).adjustBy(new BigDecimal(90)));
+    }
+
+    @Test
+    public void should_delete_singleton_summary_on_order_cancellation_event() {
         when(priceLevelSummaryRepository.load(PRICE_LEVEL_SUMMARY_ID)).thenReturn(
                 Optional.of(aPriceLevelSummary(PRICE_LEVEL_SUMMARY_ID).adjustBy(TEN)));
 
         orderEventListener.handle(new OrderCancelledEvent(ORDER));
 
-        verify(priceLevelSummaryRepository).store(
-                aPriceLevelSummary(PRICE_LEVEL_SUMMARY_ID).adjustBy(ZERO));
+        verify(priceLevelSummaryRepository).delete(PRICE_LEVEL_SUMMARY_ID);
     }
 }

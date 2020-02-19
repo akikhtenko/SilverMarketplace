@@ -19,6 +19,11 @@ public class InMemoryPriceLevelSummaryRepository implements PriceLevelSummaryRep
     }
 
     @Override
+    public void delete(PriceLevelSummaryId id) {
+        priceLevelSummaries.remove(id);
+    }
+
+    @Override
     public Optional<PriceLevelSummary> load(PriceLevelSummaryId priceLevelSummaryId) {
         return Optional.ofNullable(priceLevelSummaries.get(priceLevelSummaryId));
     }

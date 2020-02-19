@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.silverbars.marketplace.orderboard.pricelevel.PriceLevelSummary.aPriceLevelSummary;
+import static java.math.BigDecimal.ZERO;
 import static java.util.Objects.requireNonNull;
 
 public class OrderEventListener {
@@ -40,14 +41,21 @@ public class OrderEventListener {
     private void adjustPriceLevelSummaryFrom(Order order) {
         PriceLevelSummaryId priceLevelSummaryId = PriceLevelSummaryId.from(order.priceLevel(), order.type());
 
-        withLock.on(priceLevelSummaryId).run(() -> {
-            PriceLevelSummary priceLevelSummary =
-                    priceLevelSummaryRepository.load(priceLevelSummaryId).orElse(aPriceLevelSummary(priceLevelSummaryId));
+        withLock.on(priceLevelSummaryId).run(() -> adjustAndSave(order, priceLevelSummaryId));
+    }
 
-            LOG.info("Adjusting summary of price level {} and order type {} with quantity {} by {}",
-                    order.priceLevel(), order.type(), priceLevelSummary.quantity(), order.quantity());
+    private void adjustAndSave(Order order, PriceLevelSummaryId priceLevelSummaryId) {
+        PriceLevelSummary priceLevelSummary =
+                priceLevelSummaryRepository.load(priceLevelSummaryId).orElse(aPriceLevelSummary(priceLevelSummaryId));
 
-            priceLevelSummaryRepository.store(priceLevelSummary.adjustBy(order.quantity()));
-        });
+        LOG.info("Adjusting summary of price level {} and order type {} with quantity {} by {}",
+                order.priceLevel(), order.type(), priceLevelSummary.quantity(), order.quantity());
+
+        PriceLevelSummary adjustedSummary = priceLevelSummary.adjustBy(order.quantity());
+        if (ZERO.compareTo(adjustedSummary.quantity()) < 0) {
+            priceLevelSummaryRepository.store(adjustedSummary);
+        } else {
+            priceLevelSummaryRepository.delete(priceLevelSummaryId);
+        }
     }
 }
